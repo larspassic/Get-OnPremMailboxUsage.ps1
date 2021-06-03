@@ -1,4 +1,4 @@
-#Need to connect to Exchange Online before running the script
+#Run this script on an Exchange Server in the Exchange Management Shell (EMS)
 
 #Pull the users in from the CSV file
 $users = Import-Csv "users.csv"
@@ -12,14 +12,12 @@ Set-Location $folder
 #Loop through each user and generate two files - one for mailbox and one for archive
 foreach ($user in $users)
     {
-        #Narrow down to only the username - no column header
-        $username = $user.name
         
         #Make a file with the user's mailbox statistics
-        Get-MailboxStatistics -Identity $username | Format-List | Out-File "$username mailbox statistics.txt"
+        Get-MailboxStatistics -Identity $username.upn | Format-List | Out-File "$($username).upn mailbox statistics.txt"
 
         #Make a file with the user's archive statistics
-        Get-MailboxStatistics -Identity $username -Archive | Format-List | Out-File "$username archive statistics.txt"
+        Get-MailboxStatistics -Identity $username.upn -Archive | Format-List | Out-File "$($username).upn archive statistics.txt"
     }
 
 #Go back
