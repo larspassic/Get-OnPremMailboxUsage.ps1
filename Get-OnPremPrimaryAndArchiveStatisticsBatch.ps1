@@ -6,6 +6,7 @@ $users = Import-Csv "users.csv"
 #Create a folder for this minute
 $date = Get-Date -Format "dddd MM-dd-yyyy HH_mm"
 
+#Make an empty array to store all the results
 $array = @()
 
 #Loop through each user and make a CSV of the primary and archive mailbox usage details
