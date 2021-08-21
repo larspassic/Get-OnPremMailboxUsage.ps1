@@ -1,4 +1,4 @@
-# Get-OnPremAndPrimaryArchiveStatisticsBatch.ps1
+# Get-OnPremPrimaryAndArchiveStatisticsBatch.ps1
 
 ## This script uses the **Get-MailboxStatistics** Exchange Management Shell cmdlet to gather six vital statistics about a batch of users.
 
