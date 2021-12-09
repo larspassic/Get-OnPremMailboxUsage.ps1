@@ -13,7 +13,7 @@ $array = @()
 foreach ($user in $users)
     {
         #Collect the user's primary mailbox statistics and create 3 columns for archive statistics
-        $statistics = Get-MailboxStatistics -Identity $user.upn | Select-Object -Property "UserPrincipalName", @{n="PrimaryTotalItemSize";e={$_.TotalItemSize}}, @{n="PrimaryTotalDeletedItemSize";e={$_.TotalDeletedItemSize}}, "ArchiveDisplayName", "ArchiveTotalItemSize", "ArchiveTotalDeletedItemSize"
+        $statistics = Get-MailboxStatistics -Identity $user.upn | Select-Object -Property @{n="UPN";e={$_.UserPrincipalName}}, @{n="PrimaryTotalItemSize";e={$_.TotalItemSize}}, @{n="PrimaryTotalDeletedItemSize";e={$_.TotalDeletedItemSize}}, "ArchiveDisplayName", "ArchiveTotalItemSize", "ArchiveTotalDeletedItemSize"
         
         #Set the UserPrincipalName
         $statistics.UserPrincipalName = $user.upn
