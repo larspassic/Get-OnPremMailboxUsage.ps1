@@ -9,22 +9,43 @@ $date = Get-Date -Format "dddd MM-dd-yyyy HH_mm"
 #Make an empty array to store all the results
 $array = @()
 
+#Function inspired by Paul Cunningham
+#https://github.com/cunninghamp/Powershell-Exchange/blob/master/Set-MailboxQuota/Set-MailboxQuota.ps1#L97
+Function Convert-QuotaStringToGB() {
+
+    Param([string]$CurrentQuota)
+
+    [string]$CurrentQuota = ($CurrentQuota.Split("("))[1]
+    [string]$CurrentQuota = ($CurrentQuota.Split(" bytes)"))[0]
+    $CurrentQuota = $CurrentQuota.Replace(",","")
+    
+    #Format the string in to an int
+    [int]$CurrentQuotaInBytes = "{0:F0}" -f ($CurrentQuota)
+    
+    #Take int of bytes and round it into GB as a decimal ie. 0.02
+    [decimal]$CurrentQuotaInGB = [math]::round(($CurrentQuotaInBytes)/1GB, 2)
+    
+    return $CurrentQuotaInGB
+}
+
 #Loop through each user and make a CSV of the primary and archive mailbox usage details
 foreach ($user in $users)
     {
-        #Collect the user's primary mailbox statistics and create 3 columns for archive statistics
-        $statistics = Get-MailboxStatistics -Identity $user.upn | Select-Object -Property @{n="UPN";e={$_.UserPrincipalName}}, @{n="PrimaryTotalItemSize";e={$_.TotalItemSize}}, @{n="PrimaryTotalDeletedItemSize";e={$_.TotalDeletedItemSize}}, "ArchiveDisplayName", "ArchiveTotalItemSize", "ArchiveTotalDeletedItemSize"
+        #Collect the user's primary mailbox statistics
+        $statistics = Get-MailboxStatistics -Identity $user.UserPrincipalName | Select-Object -Property "UserPrincipalName", @{n="PrimaryNormalItemSizeGB";e={$_.TotalItemSize}},"NewProhibitSendReceiveQuotaGB", @{n="PrimaryRecoverableItemSizeGB";e={$_.TotalDeletedItemSize}},"NewRecoverableItemsQuotaGB", "ArchiveDisplayName", @{n="ArchiveNormalItemSizeGB";e={$_.ArchiveTotalItemSize}},"NewArchiveQuotaGB",@{n="ArchiveRecoverableItemSizeGB";e={$_.ArchiveTotalDeletedItemSize}},"NewArchiveRecoverableItemsQuotaGB"
         
-        #Set the UserPrincipalName
-        $statistics.UserPrincipalName = $user.upn
+        #Set the primary mailbox statistics
+        $statistics.UserPrincipalName = $user.UserPrincipalName
+        $statistics.PrimaryNormalItemSizeGB = Convert-QuotaStringToGB -CurrentQuota $statistics.PrimaryNormalItemSizeGB
+        $statistics.PrimaryRecoverableItemSizeGB = Convert-QuotaStringToGB -CurrentQuota $statistics.PrimaryRecoverableItemSizeGB
 
         #Collect the user's archive statistics
-        $archivestatistics = Get-MailboxStatistics -Identity $user.upn -Archive 
+        $archivestatistics = Get-MailboxStatistics -Identity $user.UserPrincipalName -Archive 
         
         #Assign the archive columns to their values
         $statistics.ArchiveDisplayName = $archivestatistics.DisplayName
-        $statistics.ArchiveTotalDeletedItemSize = $archivestatistics.TotalDeletedItemSize
-        $statistics.ArchiveTotalItemSize = $archivestatistics.TotalItemSize
+        $statistics.ArchiveRecoverableItemSizeGB = Convert-QuotaStringToGB -CurrentQuota $archivestatistics.TotalDeletedItemSize
+        $statistics.ArchiveNormalItemSizeGB = Convert-QuotaStringToGB -CurrentQuota $archivestatistics.TotalItemSize
 
         #Add the current user to the array
         $array += $statistics
