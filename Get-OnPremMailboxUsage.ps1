@@ -24,7 +24,7 @@ Function Convert-QuotaStringToGB() {
     #Format the string in to an int
     [int]$CurrentQuotaInBytes = "{0:F0}" -f ($CurrentQuota)
     
-    #Take int of bytes and round it into GB as a decimal ie. 0.02
+    #Take int of bytes and round it into GB as a decimal, for example 0.02
     [decimal]$CurrentQuotaInGB = [math]::round(($CurrentQuotaInBytes)/1GB, 2)
     
     return $CurrentQuotaInGB
@@ -34,7 +34,7 @@ Function Convert-QuotaStringToGB() {
 foreach ($user in $users)
     {
         #Collect the user's primary mailbox statistics
-        $statistics = Get-MailboxStatistics -Identity $user.UserPrincipalName | Select-Object -Property "UserPrincipalName", @{n="PrimaryNormalItemSizeGB";e={$_.TotalItemSize}},"NewProhibitSendReceiveQuotaGB", @{n="PrimaryRecoverableItemSizeGB";e={$_.TotalDeletedItemSize}},"NewRecoverableItemsQuotaGB", "ArchiveDisplayName", @{n="ArchiveNormalItemSizeGB";e={$_.ArchiveTotalItemSize}},"NewArchiveQuotaGB",@{n="ArchiveRecoverableItemSizeGB";e={$_.ArchiveTotalDeletedItemSize}},"NewArchiveRecoverableItemsQuotaGB"
+        $statistics = Get-MailboxStatistics -Identity $user.UserPrincipalName | Select-Object -Property "UserPrincipalName",@{n="PrimaryNormalItemSizeGB";e={$_.TotalItemSize}},"NewProhibitSendReceiveQuotaGB",@{n="PrimaryRecoverableItemSizeGB";e={$_.TotalDeletedItemSize}},"NewRecoverableItemsQuotaGB","ArchiveDisplayName","ArchiveNormalItemSizeGB","NewArchiveQuotaGB","ArchiveRecoverableItemSizeGB","NewArchiveRecoverableItemsQuotaGB"
         
         #Set the primary mailbox statistics
         $statistics.UserPrincipalName = $user.UserPrincipalName
@@ -46,8 +46,9 @@ foreach ($user in $users)
         
         #Assign the archive columns to their values
         $statistics.ArchiveDisplayName = $archivestatistics.DisplayName
-        $statistics.ArchiveRecoverableItemSizeGB = Convert-QuotaStringToGB -CurrentQuota $archivestatistics.TotalDeletedItemSize
         $statistics.ArchiveNormalItemSizeGB = Convert-QuotaStringToGB -CurrentQuota $archivestatistics.TotalItemSize
+        $statistics.ArchiveRecoverableItemSizeGB = Convert-QuotaStringToGB -CurrentQuota $archivestatistics.TotalDeletedItemSize
+
 
         #Add the current user to the array
         $array += $statistics
