@@ -13,8 +13,8 @@ $array = @()
 #for example, "1.348 GB (1,447,309,924 bytes)" which is difficult to use and not sortable,
 #and converts them to decimal values measured in gigabytes, for example, "1.34"
 #This will make the resulting output much easier to use and sort.
-Function Convert-QuotaStringToGB() {
-
+Function Convert-QuotaStringToGB() 
+{
     Param([string]$CurrentQuota)
 
     [string]$CurrentQuota = ($CurrentQuota.Split("("))[1]
@@ -22,7 +22,9 @@ Function Convert-QuotaStringToGB() {
     $CurrentQuota = $CurrentQuota.Replace(",","")
     
     #Format the string in to an int
-    [int]$CurrentQuotaInBytes = "{0:F0}" -f ($CurrentQuota)
+    #Int32 max value in bytes is equal to only 2GB
+    #So need to use int64 here which has very large max value
+    [int64]$CurrentQuotaInBytes = "{0:F0}" -f ($CurrentQuota)
     
     #Take int of bytes and round it into GB as a decimal, for example 0.02
     [decimal]$CurrentQuotaInGB = [math]::round(($CurrentQuotaInBytes)/1GB, 2)
@@ -32,27 +34,27 @@ Function Convert-QuotaStringToGB() {
 
 #Loop through each user and gather the important primary and archive mailbox details
 foreach ($user in $users)
-    {
-        #Collect the user's primary mailbox statistics
-        $statistics = Get-MailboxStatistics -Identity $user.UserPrincipalName | Select-Object -Property "UserPrincipalName",@{n="PrimaryNormalItemSizeGB";e={$_.TotalItemSize}},"NewProhibitSendReceiveQuotaGB",@{n="PrimaryRecoverableItemSizeGB";e={$_.TotalDeletedItemSize}},"NewRecoverableItemsQuotaGB","ArchiveDisplayName","ArchiveNormalItemSizeGB","NewArchiveQuotaGB","ArchiveRecoverableItemSizeGB","NewArchiveRecoverableItemsQuotaGB"
-        
-        #Set the primary mailbox statistics
-        $statistics.UserPrincipalName = $user.UserPrincipalName
-        $statistics.PrimaryNormalItemSizeGB = Convert-QuotaStringToGB -CurrentQuota $statistics.PrimaryNormalItemSizeGB
-        $statistics.PrimaryRecoverableItemSizeGB = Convert-QuotaStringToGB -CurrentQuota $statistics.PrimaryRecoverableItemSizeGB
+{
+    #Collect the user's primary mailbox statistics
+    $statistics = Get-MailboxStatistics -Identity $user.UserPrincipalName | Select-Object -Property "UserPrincipalName",@{n="PrimaryNormalItemSizeGB";e={$_.TotalItemSize}},"NewProhibitSendReceiveQuotaGB",@{n="PrimaryRecoverableItemSizeGB";e={$_.TotalDeletedItemSize}},"NewRecoverableItemsQuotaGB","ArchiveDisplayName","ArchiveNormalItemSizeGB","NewArchiveQuotaGB","ArchiveRecoverableItemSizeGB","NewArchiveRecoverableItemsQuotaGB"
+    
+    #Set the primary mailbox statistics
+    $statistics.UserPrincipalName = $user.UserPrincipalName
+    $statistics.PrimaryNormalItemSizeGB = Convert-QuotaStringToGB -CurrentQuota $statistics.PrimaryNormalItemSizeGB
+    $statistics.PrimaryRecoverableItemSizeGB = Convert-QuotaStringToGB -CurrentQuota $statistics.PrimaryRecoverableItemSizeGB
 
-        #Collect the user's archive statistics
-        $archivestatistics = Get-MailboxStatistics -Identity $user.UserPrincipalName -Archive 
-        
-        #Assign the archive columns to their values
-        $statistics.ArchiveDisplayName = $archivestatistics.DisplayName
-        $statistics.ArchiveNormalItemSizeGB = Convert-QuotaStringToGB -CurrentQuota $archivestatistics.TotalItemSize
-        $statistics.ArchiveRecoverableItemSizeGB = Convert-QuotaStringToGB -CurrentQuota $archivestatistics.TotalDeletedItemSize
+    #Collect the user's archive statistics
+    $archivestatistics = Get-MailboxStatistics -Identity $user.UserPrincipalName -Archive 
+    
+    #Assign the archive columns to their values
+    $statistics.ArchiveDisplayName = $archivestatistics.DisplayName
+    $statistics.ArchiveNormalItemSizeGB = Convert-QuotaStringToGB -CurrentQuota $archivestatistics.TotalItemSize
+    $statistics.ArchiveRecoverableItemSizeGB = Convert-QuotaStringToGB -CurrentQuota $archivestatistics.TotalDeletedItemSize
 
 
-        #Add the current user to the array
-        $array += $statistics
-    }
+    #Add the current user to the array
+    $array += $statistics
+}
 
 #Export the array as a complete CSV
 $array | Export-Csv "OnPrem Mailbox Usage $date.csv" -NoTypeInformation
